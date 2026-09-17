@@ -1,0 +1,321 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+@keyframes bgMove {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInDown { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes expandWidth { from { opacity: 0; width: 0; } to { opacity: 1; width: 60px; } }
+@keyframes fadeOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(30px); } }
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+html { scroll-behavior: smooth; }
+
+/* 背景 */
+body {
+  min-height: 100vh;
+  background: linear-gradient(270deg, #667eea, #764ba2, #6a85b6, #764ba2, #667eea);
+  background-size: 400% 400%;
+  animation: bgMove 4s ease infinite;
+  font-family: "Microsoft YaHei", sans-serif;
+}
+
+/*这个是通用的 登录 轮播 留言 的白色卡片模板*/
+.card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/*"登录"两个字的按钮*/
+.auth-btn {
+  font-size: 17px; padding: 14px 80px; border: none; border-radius: 12px;
+  background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; cursor: pointer;
+  letter-spacing: 6px; font-weight: bold; transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); font-family: inherit;
+}
+/* 鼠标悬停登录 */
+.auth-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.45); }
+/* 出现 */
+.auth-btn:active { transform: translateY(0); }
+/* 隐藏 */
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* 这个是登陆界面的全屏 就是祖宗  */
+#loginView {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; justify-content: center; align-items: center;
+  padding: 20px;
+}
+/* 登陆卡片专属的额外添加 */
+.auth-card { padding: 50px 45px 40px; gap: 28px; width: 400px; animation: fadeInUp 0.5s ease; }
+/* 登录俩字 */
+.auth-card h2 { font-size: 28px; letter-spacing: 2px; color: #2d3748; text-align: center; }
+/* 登陆页面所有输入框的爹 */
+.auth-fields { display: flex; flex-direction: column; gap: 16px; width: 100%; font-size: 15px; color: #4a5568; }
+/*每一行的输入框  */
+.auth-fields label { display: flex; align-items: center; gap: 12px; font-weight: 500; }
+  /*输入框本身  */
+.auth-fields input {
+  flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px;outline: none; transition: all 0.3s; background: #f7fafc; font-size: 15px;}
+  /* 输入内容本身 */
+.auth-fields input::placeholder { color: #a0aec0; }
+/* 鼠标点击 */
+.auth-fields input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); background: #fff; }
+ /* 还没有账号？已有账号？这两行 */
+.auth-link { font-size: 14px; }
+/* 这两行的文字 */
+.auth-link a { color: #667eea; text-decoration: none; font-weight: 500; transition: color 0.3s; cursor: pointer; }
+/* 鼠标悬停在这两行 */
+.auth-link a:hover { color: #764ba2; text-decoration: underline; }
+
+ /* 这个是主页面 */
+.app-view { display: flex; width: 100%; flex-direction: column; }
+/* 这个是登出按钮 */
+.logout-btn {
+  position: fixed; top: 18px; right: 18px; z-index: 100;
+  padding: 8px 20px; border: 1px solid rgba(255,255,255,0.4); border-radius: 20px;
+  background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); color: #fff;
+  font-size: 13px; cursor: pointer; letter-spacing: 1px; transition: all 0.3s; font-family: inherit;
+}
+/* 鼠标悬停在登出按钮 */
+.logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+/* ==========================================
+   通用全屏分区盒子：每个板块（个人介绍、轮播图、留言板）各自占一整屏
+   ========================================== */
+.section { width: 100%; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 80px 20px; }
+
+/* ==========================================
+   个人介绍卡片（深色主题）：第一个板块的主体盒子
+   ========================================== */
+.intro-card {
+  background: #1a1a2e; color: #fff; border-radius: 0; box-shadow: none;
+  align-items: center; width: 100%; max-width: 500px; padding: 40px 20px; text-align: center; margin: 0 auto;
+}
+/* 头像图片 */
+.intro-card img {
+  width: 200px; height: 200px; border-radius: 50%;
+  border: 4px solid #2d4a7a; object-fit: cover; margin-bottom: 30px;
+  animation: fadeInDown 1s ease forwards; filter: grayscale(0%);
+  transition: transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+/* 头像悬停效果：放大 + 蓝色边框 + 发光 */
+.intro-card img:hover { transform: scale(1.08); border-color: #4a90d9; box-shadow: 0 0 30px rgba(74, 144, 217, 0.4); }
+/* 名字大标题："张向航"三个字，32px 字号，字间距 2px */
+.intro-card h1 { font-size: 32px; margin-bottom: 8px; letter-spacing: 2px; }
+/* 副标题："电子科技大学"灰色小字，16px，下边距 40px */
+.intro-card .subtitle { color: #a0a0b8; font-size: 16px; margin-bottom: 40px; }
+/* 装饰分隔线：名字下方那条 60px 宽的蓝紫渐变短线，纯装饰 */
+.intro-divider { width: 60px; height: 3px; background: linear-gradient(90deg, #2d4a7a, #4a90d9); border-radius: 2px; margin: 0 auto 30px; }
+/* 个人信息卡片：深色半透明内嵌小卡片，包含年龄/爱好/来自/梦想/手机号/性格
+   半透明背景 + 微弱边框，圆角 16px，悬停时上移 4px 并加深阴影 */
+.info-card {
+  width: 100%; max-width: 380px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px; padding: 24px 20px; text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin: 0 auto;
+}
+/* 个人信息卡片悬停：上移 + 加深阴影 */
+.info-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); }
+/* 个人信息每一行：如"年龄：19 岁"，灰色文字 15px */
+.info-card p { font-size: 15px; line-height: 2; color: #c0c0d0; display: flex;
+  justify-content: center;
+  align-items: center;}
+/* 每行前面的加粗标签：如"年龄："、"爱好："等，白色加粗 */
+.info-card p span { color: #fff; font-weight: bold; }
+/* 滚动提示文字："↓ 向下滚动查看更多"，半透明白色，带淡入上移动画 */
+.scroll-hint { color: rgba(255,255,255,0.6); font-size: 13px; letter-spacing: 2px; margin-top: 30px; animation: fadeInUp 1s ease 1s both; }
+
+/* 轮播图卡片*/
+.slider-card { padding: 40px 45px; gap: 24px; width: 640px; }
+/* 轮播图区域的标题 */
+.slider-card h2 { font-size: 28px; letter-spacing: 2px; color: #2d3748; text-align: center; margin-top: -15px; margin-bottom: 20px;}
+/* 轮播视窗 */
+.slider { position: relative; width: 100%; height: 360px; overflow: hidden; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
+/* 幻灯片轨道*/
+.slides { display: flex; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+/* 单张幻灯片 */
+.slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; text-align: center; }
+/* 幻灯片大标题*/
+.slide h3 { font-size: 36px; letter-spacing: 3px; margin-bottom: 12px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); }
+/* 幻灯片副文字 */
+.slide p { font-size: 16px; color: rgba(255, 255, 255, 0.85); letter-spacing: 1px; }
+/* 第 1 张幻灯片背景 */
+.slide:nth-child(1) { background: linear-gradient(135deg, #667eea, #764ba2); }
+/* 第 2 张 */
+.slide:nth-child(2) { background: linear-gradient(135deg, #f093fb, #f5576c); }
+/* 第 3）*/
+.slide:nth-child(3) { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+/* 4 */
+.slide:nth-child(4) { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+/* 第 5 张幻灯片 */
+.slide:nth-child(5) { background: linear-gradient(135deg, #fa709a, #fee140); }
+/* 轮播左右切换按钮 */
+.btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 44px; height: 44px; background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%; color: #fff; font-size: 20px; cursor: pointer;
+  transition: all 0.3s ease; z-index: 10;
+  display: flex; justify-content: center; align-items: center;
+}
+/* 切换按钮悬停 */
+.btn:hover { background: rgba(255, 255, 255, 0.5); transform: translateY(-50%) scale(1.1); }
+/* 切换按钮点击*/
+.btn:active { transform: translateY(-50%) scale(0.95); }
+/* 左箭头按钮位置 */
+.btn-left { left: 14px; }
+/* 右箭头按钮位置 */
+.btn-right { right: 14px; }
+/* 指示点容器 */
+.dots { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10; }
+/* 单个指示点 */
+.dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); cursor: pointer; transition: all 0.3s ease; }
+/* 指示点悬停 */
+.dot:hover { background: rgba(255, 255, 255, 0.6); }
+/* 当前激活的指示点 */
+.dot.active { background: #fff; transform: scale(1.3); box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+/* 页码计数器文字*/
+.slide-counter { font-size: 14px; color: #4a5568; letter-spacing: 2px; }
+/* 页码计数器中的数字 */
+.slide-counter span { color: #667eea; font-weight: bold; font-size: 18px; }
+
+/* ==========================================
+   留言板卡片（白色.card 风格）：第三个板块的主体盒子
+   ========================================== */
+.msg-card { padding: 50px 45px 40px; gap: 28px; width: 100%; max-width: 600px; margin-bottom: 40px; }
+/* 留言板大标题："💬 留言板"，28px 加粗深灰色，居中 */
+.msg-title { font-size: 28px; letter-spacing: 2px; color: #2d3748; text-align: center; font-weight: bold; margin-bottom: 20px; }
+/* 留言表单容器：包裹昵称输入框 + 留言文本框 + 发表按钮，纵向排列间距 16px */
+.msg-form { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+/* 表单每一行：如"昵称：输入框"或"留言：文本框"，灰色文字 15px 加粗 */
+.msg-form label { display: flex; align-items: center; gap: 12px; font-size: 15px; color: #4a5568; font-weight: 500; }
+/* 留言表单的输入框和文本框：灰色底圆角输入样式，和登录页输入框风格一致 */
+.msg-form input, .msg-form textarea {
+  flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px;
+  outline: none; transition: all 0.3s; background: #f7fafc; font-size: 15px; font-family: inherit; color: #2d3748;
+}
+/* 留言文本框：最小高度 120px，可以上下拖拽调整高度 */
+.msg-form textarea { min-height: 120px; resize: vertical; }
+/* 输入框和文本框的占位符文字颜色：浅灰色 */
+.msg-form input::placeholder, .msg-form textarea::placeholder { color: #a0aec0; }
+/* 输入框和文本框获得焦点时：边框变紫 + 外发光 + 白色背景 */
+.msg-form input:focus, .msg-form textarea:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); background: #fff; }
+/* 分隔线：表单和留言列表之间的渐变横线（两端透明，中间灰色） */
+.msg-divider { height: 1px; background: linear-gradient(90deg, transparent, #e2e8f0, transparent); width: 100%; }
+/* 留言列表标题："全部留言 (0)"，18px 深灰色加粗 */
+.msg-list-header { font-size: 18px; color: #2d3748; letter-spacing: 1px; font-weight: 600; margin-top:10px ;}
+/* 留言列表容器：所有留言条目的纵向排列区，最大高度 500px，超出可滚动
+   右侧有 4px 内边距给滚动条留空间 */
+.msg-list { display: flex; flex-direction: column; gap: 16px; width: 100%; max-height: 500px; overflow-y: auto; padding-right: 4px; }
+/* 留言列表滚动条整体宽度：6px */
+.msg-list::-webkit-scrollbar { width: 6px; }
+/* 滚动条轨道背景：透明 */
+.msg-list::-webkit-scrollbar-track { background: transparent; }
+/* 滚动条滑块：灰色圆角小条 */
+.msg-list::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+/* 滚动条滑块悬停：变深灰 */
+.msg-list::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+/* 单条留言卡片：浅灰背景 (#f7fafc)，圆角 16px，带淡入上移动画
+   悬停时边框变紫 + 微阴影 + 上移 1px */
+.msg-item {
+  background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 16px;
+  padding: 18px 22px; transition: all 0.3s ease; animation: fadeInUp 0.4s ease forwards;
+}
+/* 留言卡片悬停：紫色边框 + 淡紫阴影 + 上移 */
+.msg-item:hover { border-color: #667eea; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08); transform: translateY(-1px); }
+/* 留言头部行：昵称 (左) + 时间 + 删除按钮 (右) 两端对齐的 flex 布局 */
+.msg-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+/* 留言者昵称：紫色加粗 15px */
+.msg-item-name { font-size: 15px; font-weight: bold; color: #667eea; }
+/* 留言时间：灰色小字 12px，如"2026-09-15 14:30" */
+.msg-item-time { font-size: 12px; color: #a0aec0; }
+/* 留言正文内容：14px 深灰色文字，行高 1.7，自动换行 */
+.msg-item-content { font-size: 14px; color: #4a5568; line-height: 1.7; word-break: break-all; }
+/* 删除按钮：默认透明隐形，灰色小字 12px，悬停时才变红色显示出来 */
+.msg-delete-btn {
+  background: none; border: 1px solid transparent; color: #cbd5e0;
+  font-size: 12px; cursor: pointer; padding: 3px 10px; border-radius: 8px;
+  transition: all 0.3s ease; letter-spacing: 1px; margin-left: 10px; white-space: nowrap;
+}
+/* 删除按钮悬停：变红色文字 + 浅红边框 + 浅红背景 */
+.msg-delete-btn:hover { color: #e53e3e; border-color: #fed7d7; background: #fff5f5; }
+/* 删除按钮点击：缩小 0.95 倍 */
+.msg-delete-btn:active { transform: scale(0.95); }
+/* 留言删除动画状态：向右淡出消失，期间不可点击 */
+.msg-item.removing { animation: fadeOutRight 0.3s ease forwards; pointer-events: none; }
+/* 空状态提示："暂无留言，快来抢沙发吧~"，灰色居中 14px */
+.msg-empty { text-align: center; color: #a0aec0; font-size: 14px; padding: 30px 0; }
+
+/* ==========================================
+   AI 回复区域：嵌套在每条留言 (msg-item) 内部
+   淡紫渐变背景的圆角回复卡片，带淡入上移动画
+   包含：AI 图标 + 标题头、回复正文、加载中动画、错误提示
+   ========================================== */
+.ai-reply {
+  margin-top: 12px; padding: 14px 18px; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+  border: 1px solid rgba(102, 126, 234, 0.2); position: relative;
+  animation: fadeInUp 0.5s ease forwards;
+}
+/* AI 回复头部行：AI 小圆标 + "通义千问 回复"文字，紫色加粗 13px */
+.ai-reply-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  font-size: 13px; font-weight: bold; color: #667eea;
+}
+/* AI 小圆标：22x22 的紫蓝渐变小圆圈，里面写"AI"两个白色字 */
+.ai-reply-header .ai-icon {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px; font-weight: bold;
+}
+/* AI 回复正文：14px 深灰色文字，行高 1.8，自动换行 */
+.ai-reply-content { font-size: 14px; color: #4a5568; line-height: 1.8; word-break: break-all; }
+/* AI 加载状态："正在生成回复 ···"，紫色斜体 13px，三个小圆点脉冲动画 */
+.ai-reply-loading {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: #667eea; font-style: italic;
+}
+/* 加载动画的三个小圆点：6x6 紫色圆点，脉冲动画无限循环 */
+.ai-reply-loading .dot-anim span {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #667eea; animation: pulse 1.2s ease-in-out infinite;
+}
+/* 第 2 个圆点延迟 0.2s，制造依次闪烁效果 */
+.ai-reply-loading .dot-anim span:nth-child(2) { animation-delay: 0.2s; }
+/* 第 3 个圆点延迟 0.4s */
+.ai-reply-loading .dot-anim span:nth-child(3) { animation-delay: 0.4s; }
+/* AI 回复失败错误提示：红色 13px 文字，如"⚠️ AI 暂时无法回复" */
+.ai-reply-error { color: #e53e3e; font-size: 13px; }
+
+/* AI 标签：标题旁"🤖 AI 自动回复"的紫蓝渐变小标签，白色文字 11px，圆角药丸形 */
+.ai-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff; font-size: 11px; padding: 2px 10px; border-radius: 10px;
+  letter-spacing: 1px; margin-left: 8px; font-weight: bold;
+}
+
+/* 页面底部结束语："— 到此结束·感谢浏览 —"，半透明白色居中，字间距 4px */
+.end-tip { color: rgba(255,255,255,0.6); font-size: 13px; letter-spacing: 4px; text-align: center; padding: 10px 0 50px; }
+
+/* ==========================================
+   手机端响应式适配：屏幕宽度≤680px 时生效
+   轮播卡/留言卡变全宽，内边距缩小，标题字号缩小，表单标签改竖排
+   ========================================== */
+@media (max-width: 680px) {
+  .slider-card { width: 100%; padding: 30px 25px; }
+  .msg-card { padding: 35px 25px 30px; }
+  .msg-title { font-size: 24px; }
+  .auth-card { width: 100%; }
+  .msg-form label { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
