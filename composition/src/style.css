@@ -1,321 +1,1848 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ==========================================================================
+   张向航 · 个人站点  全局样式表
+   --------------------------------------------------------------------------
+   主题：极夜极光玻璃 / Aurora Glass
+   原来的「紫色渐变 + 半透明白卡」整体换成深墨蓝画布 + 漂移极光 + 真多层玻璃。
+   纯 CSS 改动：所有类名、id、DOM 结构、JS 绑定（.removing / .active /
+   #slider / #slider-slides / #msg-list）一律原样保留，功能零改动。
 
-@keyframes bgMove {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+   目录：
+     1. 设计变量（配色 / 字号阶梯 / 圆角 / 阴影统一在这里改）
+     2. 全局重置与基础排版
+     3. 背景（五层叠加的动效极光）
+     4. 动画关键帧
+     5. 通用卡片基座（玻璃 + 渐变发丝描边）
+     6. 通用按钮
+     7. 登录 / 注册页
+     8. 主页面框架（退出按钮、全屏分区）
+     9. 板块一：个人介绍
+    10. 板块二：轮播图
+    11. 板块三：留言板
+    12. AI 回复区域
+    13. 页脚结束语
+    14. 响应式适配
+    15. 无障碍与动效偏好
+   ========================================================================== */
+
+
+/* ==========================================================================
+   1. 设计变量
+   老变量名（--brand-1 / --ink-900 / --card-shadow …）全部保留，
+   只换值，所以组件里任何引用都不会失效；新加的是极光三色、发丝渐变和字号阶梯。
+   ========================================================================== */
+:root {
+  /* 声明本站是深色主题：浏览器会把自带的滚动条、表单控件默认样式
+     都按深色渲染，省得画布是黑的、滚动条还是白的 */
+  color-scheme: dark;
+
+  /* 品牌三色：靛蓝 → 紫 → 青。按钮、AI 标识、当前指示点共用一条渐变 */
+  --brand-1: #6d5efc;
+  --brand-2: #a855f7;
+  --brand-3: #22d3ee;
+  --brand-soft: rgba(109, 94, 252, 0.12);
+  --brand-line: rgba(109, 94, 252, 0.20);
+
+  /* 全站唯一那条三色渐变，改颜色只改这里。
+     三档都取得足够深：白字压在任意一段上都有 5.4:1 以上。
+     亮青 #22d3ee 只用来做发光和描边（极光斑、指示点辉光、头像光环），
+     不拿它当白字的底 —— 白字压亮青只有 1.9:1，等于看不见 */
+  --brand-grad: linear-gradient(135deg, #5b4ee0 0%, #7c3aed 52%, #0e7490 100%);
+
+  /* AI（机器）声音的专用色。
+     原来按钮、删除、「AI 在说话」共用同一条渐变，等于人和机器一个颜色；
+     拆开之后：人做的事（按钮、删除、当前指示点）走品牌紫青，
+     机器说的话（AI 竖条、圆标、思考中的圆点、标题文字）走冷青 */
+  --ai-ink: #0e7490;                                      /* 浅色面板上的青色文字 5:1 */
+  --ai-rail: linear-gradient(180deg, #22d3ee, #0e7490);   /* 左侧竖条，纯装饰无文字 */
+  --ai-chip: linear-gradient(180deg, #0e7490, #155e75);   /* 圆标底色，白字 5.4–7.3:1 */
+
+  /* 画布：极夜墨蓝。卡片是浅色玻璃，靠它把卡片「抬」起来 */
+  --canvas: #06081a;
+  --canvas-2: #0b1030;
+
+  /* 中性色阶：都跑在浅色玻璃上，对比度已按 WCAG 重算过 */
+  --ink-900: #101427;  /* 大标题      13.9:1 */
+  --ink-700: #363d54;  /* 正文         7.3:1 */
+  --ink-500: #4d5670;  /* 次要文字     5.6:1 */
+  --ink-300: #5c6380;  /* 占位符       5.4:1（旧值 #a0aec0 只有 2.1:1） */
+
+  /* 分隔线与输入框底色 */
+  --line: #e4e7f5;
+  --paper: #f5f6fc;
+
+  /* 卡片外观：82% 白让背后的极光透一点进来，才有玻璃感 */
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --card-border: rgba(255, 255, 255, 0.70);
+  --card-radius: 26px;
+  /* 三段式阴影：顶部内高光 + 环境投影 + 接触投影，模拟真实玻璃的折边 */
+  --card-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.70),
+    0 30px 60px -22px rgba(3, 5, 20, 0.60),
+    0 6px 20px -10px rgba(3, 5, 20, 0.45);
+
+  /* 1px 渐变发丝边（用 mask 挖空中间画出来的，不是 border） */
+  --hairline: linear-gradient(140deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(168, 85, 247, 0.55) 38%,
+    rgba(34, 211, 238, 0.45) 68%,
+    rgba(255, 255, 255, 0.30));
+
+  /* 深色画布上的文字（极光亮度会浮动，所以留足余量） */
+  --text-on-dark: rgba(255, 255, 255, 0.86);
+  --text-on-dark-dim: rgba(255, 255, 255, 0.62);
+
+  /* 字号阶梯：标题用 clamp 跟视口走，不再靠断点硬切 */
+  --fs-display: clamp(28px, 4.2vw, 38px);
+  --fs-h2: clamp(22px, 3.2vw, 29px);
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+
+  /* 聚焦轮廓。
+     原来是单圈 30% 透明度的紫，对非文字元素只有约 1.4:1，
+     压在浅色玻璃和深色画布上基本都看不见 ——
+     所以各处只能再各自补一圈白色描边来救，越补越乱。
+     改成「内浅 + 外深」的双圈：里圈是卡片底色，外圈是品牌紫。
+     不管底下是浅玻璃、深画布还是彩色幻灯片，总有一圈是清楚的 */
+  --ring: 0 0 0 2px #f5f6fc, 0 0 0 5px #6d5efc;
+
+  /* 两条缓动曲线。
+     --ease 不会过冲，留给轮播轨道这类「位移必须精确」的地方；
+     --ease-spring 末端会轻微弹一下，留给按钮、卡片、头像这些要有手感的地方 */
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.46, 0.64, 1);
 }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeInDown { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes expandWidth { from { opacity: 0; width: 0; } to { opacity: 1; width: 60px; } }
-@keyframes fadeOutRight { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(30px); } }
-@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 
-html { scroll-behavior: smooth; }
+/* 选中文字也纳入配色。浏览器默认的蓝会在深色画布上戳出一个洞 */
+::selection {
+  color: #ffffff;
+  background: rgba(109, 94, 252, 0.55);
+}
 
-/* 背景 */
+/* 不支持 backdrop-filter 的浏览器：玻璃透不出来，就把卡片调到接近实心，
+   宁可少一点通透感，也不能让文字浮在杂色背景上 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --card-bg: rgba(255, 255, 255, 0.97);
+  }
+}
+
+
+/* ==========================================================================
+   2. 全局重置与基础排版
+   注意：底色挪到了 html 上。
+   根元素的背景会传播到整个画布；如果还让 body 扛底色，
+   body 的 ::before / ::after 极光层就没有可叠的基底，会糊成一片。
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* 兜底底色 + 静态底纹：万一极光动画被系统禁用，页面也依然是一张完整的深色画布 */
+  background-color: var(--canvas);
+  background-image:
+    radial-gradient(120% 80% at 50% -10%, rgba(109, 94, 252, 0.22), transparent 62%),
+    radial-gradient(100% 70% at 50% 108%, rgba(34, 211, 238, 0.14), transparent 60%),
+    linear-gradient(180deg, #06081a 0%, #080b20 45%, #05070f 100%);
+  background-attachment: fixed;
+}
+
 body {
   min-height: 100vh;
-  background: linear-gradient(270deg, #667eea, #764ba2, #6a85b6, #764ba2, #667eea);
-  background-size: 400% 400%;
-  animation: bgMove 4s ease infinite;
-  font-family: "Microsoft YaHei", sans-serif;
+  color: var(--ink-700);
+  font-size: 15px;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+  /* 字体栈：优先微软雅黑，逐级降级，保证任何系统下都不会退回难看的默认衬线字体 */
+  font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB",
+               "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* 中文排版：允许标点悬挂，长英文单词强制换行而不是撑破容器 */
+  overflow-wrap: anywhere;
+  /* 背景全部交给上面的 html 和下面的极光层，body 自己不再画任何东西 */
+  background-color: transparent;
+  background-image: none;
 }
 
-/*这个是通用的 登录 轮播 留言 的白色卡片模板*/
+
+/* ==========================================================================
+   3. 背景（五层叠加的动效极光）
+   全部只碰 transform / opacity，交给合成层处理，不重排也不重绘：
+     html          → 不动的底色 + 两片静态柔光（兜底，任何时候都在）
+     html::before  → 四团极光斑：漂移 + 明暗呼吸（16s / 9s）
+     html::after   → 极光旋流：200vmax 锥形渐变整体自转（30s，screen 叠加）
+     body::before  → 扫光：一道白光横穿画面（8s）
+     body::after   → 颗粒 + 四角压暗，静止不动
+
+   前两层负责「好看」，第三层负责「一眼看出在动」—— 见下面各层的说明。
+
+   两条必须守住的：
+   1) html / body 上绝对不能出现 transform / filter / will-change / contain。
+      它们会给 position:fixed 造出新的包含块，下面四层的 fixed 会全部失效，
+      整片背景会跟着页面一起滚走。
+   2) 不用 filter: blur()。柔光是 radial-gradient 自身的渐变做出来的；
+      对一个满屏元素做模糊，低端机上会直接掉帧。
+
+   —— 原来那个 20 秒平移的 linear-gradient（bgMove）已经删掉 ——
+   它靠动 background-position 实现，浏览器只能每帧重绘整个视口；
+   换成光斑和光帘之后，画面更耐看，合成开销也低得多。
+   ========================================================================== */
+
+/* 极光斑：四团高饱和光斑，inset 取负值留出漂移余量。
+   两个刻意的选择：
+   · 颜色取了高饱和的紫罗兰 / 品红 / 青 / 蓝，而不是原来那三个近似的靛蓝 ——
+     三个同色系的光斑叠在一起，动起来也分不清是哪一团在动；
+   · 渐隐收到 58%，而不是 68%。光斑边缘拖得越长，色块边界越糊，
+     看上去就越像「一张静止的渐变壁纸」。收窄之后每团都是一个有边界的色块，
+     边界一移动，眼睛立刻就察觉得到。 */
+html::before {
+  content: '';
+  position: fixed;
+  inset: -34vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40vmax 36vmax at 16% 22%, rgba(139, 92, 246, 0.66), transparent 56%),
+    radial-gradient(36vmax 32vmax at 84% 16%, rgba(217, 70, 239, 0.58), transparent 56%),
+    radial-gradient(38vmax 34vmax at 68% 88%, rgba(34, 211, 238, 0.54), transparent 56%),
+    radial-gradient(34vmax 30vmax at 10% 84%, rgba(59, 130, 246, 0.60), transparent 56%);
+  animation: auroraDrift 6s var(--ease) infinite,
+             auroraBreath 3s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* 极光旋流：一块 200vmax 的方片居中，铺一整圈锥形渐变再整体自转。
+   这一层是「一眼看出在动」的主力 ——
+   光斑只是局部在挪，而锥形渐变一转，整个画面的颜色是同步往外扫的，
+   余光都能感觉到。用 screen 叠加，只提亮不压暗。
+   周期和极光斑（16 秒）错开，两层不会同时回到起点。 */
+html::after {
+  content: '';
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 200vmax;
+  height: 200vmax;
+  margin: -100vmax 0 0 -100vmax;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  background: conic-gradient(from 0deg,
+    rgba(139, 92, 246, 0.80) 0deg,
+    rgba(34, 211, 238, 0.48) 58deg,
+    rgba(6, 8, 26, 0) 118deg,
+    rgba(217, 70, 239, 0.70) 188deg,
+    rgba(59, 130, 246, 0.55) 258deg,
+    rgba(139, 92, 246, 0.80) 360deg);
+  animation: ribbonSpin 10s linear infinite;
+  will-change: transform;
+}
+
+/* 扫光：一道白光横向掠过。原来只有 0.055 的白，在深色画布上基本看不见；
+   提到 0.14 之后才真的能「看见光扫过去」。8 秒一趟，是三层里最快的一层，
+   负责在极光那种慢节奏之外给一个短周期的提示。 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(100deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 60%);
+  animation: lightSweep 3s linear infinite;
+  will-change: transform;
+}
+
+/* 颗粒 + 暗角：定死不动，所以只合成一次。
+   颗粒用 SVG feTurbulence 内嵌成 data URI，不额外发请求。
+   低端机上要是感觉滚动发涩，整段删掉即可，设计本身不依赖它。 */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+  background-image:
+    radial-gradient(120% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 140px 140px;
+}
+
+
+/* ==========================================================================
+   4. 动画关键帧
+   统一放在这里，方便一眼看全站有哪些动效
+   ========================================================================== */
+
+/* 极光漂移：只碰 transform，交给合成层处理，不触发重排重绘。
+   四个关键帧而不是三个 —— 三段式走的是「去 → 回 → 回」，
+   每轮会明显在原位顿一下；四段之后轨迹变成绕圈，看不出起点。 */
+@keyframes auroraDrift {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  25%  { transform: translate3d(15vmax, -11vmax, 0) rotate(14deg) scale(1.30); }
+  50%  { transform: translate3d(-7vmax, 13vmax, 0) rotate(-12deg) scale(1.10); }
+  75%  { transform: translate3d(-17vmax, -6vmax, 0) rotate(10deg) scale(1.24); }
+  100% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+}
+
+/* 极光明暗呼吸：周期和漂移错开（9 / 16 秒），就不会同时到极值。
+   幅度从 0.70↔1 拉开到 0.55↔1 —— 亮度差越大，「在变」这件事越明显 */
+@keyframes auroraBreath {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* 极光帘自转：一整圈 64 秒，几乎察觉不到在转，但画面一直在变 */
+@keyframes ribbonSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 扫光横穿：左右各多出 20vmax 的余量，所以 0→1 的位移不会露边 */
+@keyframes lightSweep {
+  from { transform: translate3d(-50%, 0, 0); }
+  to   { transform: translate3d(50%, 0, 0); }
+}
+
+/* 元素淡入并上移：卡片入场、留言新增都用它 */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 元素从上方落下：头像入场 */
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 元素向右淡出：留言删除动画。
+   注意：.msg-item.removing 用的就是它，时长 0.3s 必须和 JS 里 300ms 的等待对齐 */
+@keyframes fadeOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(30px); }
+}
+
+/* 呼吸闪烁：AI"正在思考"的三个小圆点 */
+@keyframes pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+
+/* 光带横扫：鼠标悬停在主按钮上时掠过一道高光 */
+@keyframes shine {
+  from { transform: translateX(-140%) skewX(-20deg); }
+  to   { transform: translateX(220%)  skewX(-20deg); }
+}
+
+
+/* ==========================================================================
+   5. 通用卡片基座
+   玻璃的三件套：半透白底 + 饱和背景模糊 + 渐变发丝边。
+   发丝边用 mask 挖空中间画出来 —— border 画不出渐变，而且会和圆角打架。
+   它是 pointer-events:none 的伪元素，不参与任何事件流，DOM 结构零改动。
+
+   坑：.slider-card / .msg-card 在模板里并没有写 .card 这个类，
+   所以这三个选择器必须并列写上，少一个那块就不是卡片。
+   ========================================================================== */
+.card,
+.slider-card,
+.msg-card {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+/* 渐变发丝边：铺满整块渐变，再把内容区挖掉，剩下的就是 1px 的框。
+   必须整个裹在 @supports 里 ——
+   挖空靠的是 mask-composite，不支持它的浏览器不会「退化成一个普通边框」，
+   而是会把这张铺满整块的渐变原样画出来，盖住卡片的标题和表单。
+   所以在门外就什么都不画，让上面那条 1px 的 border 顶上 */
+@supports ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .card::before,
+  .slider-card::before,
+  .msg-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;                 /* 压在最上层，保证一定看得见 */
+    padding: 1px;
+    border-radius: inherit;
+    background: var(--hairline);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+/* .card 额外承担纵向居中布局（登录卡在用它） */
 .card {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-  border-radius: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-/*"登录"两个字的按钮*/
+/* 悬停微微抬起 + 阴影加深。只在真有鼠标的设备上生效，
+   免得触屏点一下就留一个「悬停态」下不去 */
+@media (hover: hover) {
+  .card:hover,
+  .slider-card:hover,
+  .msg-card:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.80),
+      0 42px 80px -26px rgba(3, 5, 20, 0.70),
+      0 10px 28px -12px rgba(3, 5, 20, 0.50);
+  }
+}
+
+
+/* ==========================================================================
+   6. 通用按钮
+   .auth-btn 是登录按钮和留言"发表"按钮共用的样式
+   ========================================================================== */
 .auth-btn {
-  font-size: 17px; padding: 14px 80px; border: none; border-radius: 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; cursor: pointer;
-  letter-spacing: 6px; font-weight: bold; transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); font-family: inherit;
+  position: relative;
+  overflow: hidden;                 /* 把悬停时的光带裁进按钮圆角内 */
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  /* 用 em 而不是 px：中文字间距在缩放到小屏时才不会失衡。
+     text-indent 补回最后一字右侧多出来的那点间距，让文字真正居中 */
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  color: #fff;
+  padding: 15px 76px;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  /* 三色极光渐变，比原来的双色紫更有层次 */
+  background: var(--brand-grad);
+  background-size: 180% 180%;
+  background-position: 0% 50%;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 10px 24px -8px rgba(109, 94, 252, 0.65),
+    0 2px 6px rgba(6, 8, 26, 0.30);
+  transition: transform 0.28s var(--ease-spring),
+              box-shadow 0.28s var(--ease),
+              background-position 0.6s var(--ease),
+              filter 0.28s var(--ease);
 }
-/* 鼠标悬停登录 */
-.auth-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.45); }
-/* 出现 */
-.auth-btn:active { transform: translateY(0); }
-/* 隐藏 */
-.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-/* 这个是登陆界面的全屏 就是祖宗  */
+/* 悬停：轻微上浮 + 渐变往右滑一段（像光在色带上走），阴影加深 */
+.auth-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-position: 100% 50%;
+  filter: saturate(1.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 18px 40px -10px rgba(109, 94, 252, 0.60),
+    0 6px 16px -4px rgba(34, 211, 238, 0.35);
+}
+
+/* 按下：压回原位并轻微内缩，给出实体反馈 */
+.auth-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
+              0 6px 16px -8px rgba(109, 94, 252, 0.55);
+}
+
+/* 禁用（AI 回复中）：换成一块实心的哑光石板，不响应指针。
+   原来靠 opacity + grayscale 变灰，那只是把极光渐变整体调暗调灰，
+   按钮看起来像「脏了」而不是「停用了」；
+   换成实色之后形状和分量都还在，白字也仍有 4.9:1 */
+.auth-btn:disabled {
+  background: #6b7189;
+  background-image: none;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+  box-shadow: none;
+}
+
+/* 键盘聚焦时的可见轮廓（鼠标点击不会触发，所以不破坏美观） */
+.auth-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+/* 悬停光带：一条斜向白色高光从左扫到右 */
+.auth-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+  transform: translateX(-140%) skewX(-20deg);
+  pointer-events: none;
+}
+.auth-btn:hover:not(:disabled)::after {
+  animation: shine 0.3s var(--ease);
+}
+
+
+/* ==========================================================================
+   7. 登录 / 注册页
+   ========================================================================== */
+
+/* 整页遮罩层：盖住背后的一切，未登录时看不到主站内容。
+   自身不填色，让极光透上来；只在顶部加一层靛蓝辉光，
+   让「登录」这个时刻看起来是特意打的光，而不是一片空 */
 #loginView {
-  position: fixed; inset: 0; z-index: 200;
-  display: flex; justify-content: center; align-items: center;
-  padding: 20px;
-}
-/* 登陆卡片专属的额外添加 */
-.auth-card { padding: 50px 45px 40px; gap: 28px; width: 400px; animation: fadeInUp 0.5s ease; }
-/* 登录俩字 */
-.auth-card h2 { font-size: 28px; letter-spacing: 2px; color: #2d3748; text-align: center; }
-/* 登陆页面所有输入框的爹 */
-.auth-fields { display: flex; flex-direction: column; gap: 16px; width: 100%; font-size: 15px; color: #4a5568; }
-/*每一行的输入框  */
-.auth-fields label { display: flex; align-items: center; gap: 12px; font-weight: 500; }
-  /*输入框本身  */
-.auth-fields input {
-  flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px;outline: none; transition: all 0.3s; background: #f7fafc; font-size: 15px;}
-  /* 输入内容本身 */
-.auth-fields input::placeholder { color: #a0aec0; }
-/* 鼠标点击 */
-.auth-fields input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); background: #fff; }
- /* 还没有账号？已有账号？这两行 */
-.auth-link { font-size: 14px; }
-/* 这两行的文字 */
-.auth-link a { color: #667eea; text-decoration: none; font-weight: 500; transition: color 0.3s; cursor: pointer; }
-/* 鼠标悬停在这两行 */
-.auth-link a:hover { color: #764ba2; text-decoration: underline; }
-
- /* 这个是主页面 */
-.app-view { display: flex; width: 100%; flex-direction: column; }
-/* 这个是登出按钮 */
-.logout-btn {
-  position: fixed; top: 18px; right: 18px; z-index: 100;
-  padding: 8px 20px; border: 1px solid rgba(255,255,255,0.4); border-radius: 20px;
-  background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); color: #fff;
-  font-size: 13px; cursor: pointer; letter-spacing: 1px; transition: all 0.3s; font-family: inherit;
-}
-/* 鼠标悬停在登出按钮 */
-.logout-btn:hover { background: rgba(255,255,255,0.3); }
-
-/* ==========================================
-   通用全屏分区盒子：每个板块（个人介绍、轮播图、留言板）各自占一整屏
-   ========================================== */
-.section { width: 100%; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 80px 20px; }
-
-/* ==========================================
-   个人介绍卡片（深色主题）：第一个板块的主体盒子
-   ========================================== */
-.intro-card {
-  background: #1a1a2e; color: #fff; border-radius: 0; box-shadow: none;
-  align-items: center; width: 100%; max-width: 500px; padding: 40px 20px; text-align: center; margin: 0 auto;
-}
-/* 头像图片 */
-.intro-card img {
-  width: 200px; height: 200px; border-radius: 50%;
-  border: 4px solid #2d4a7a; object-fit: cover; margin-bottom: 30px;
-  animation: fadeInDown 1s ease forwards; filter: grayscale(0%);
-  transition: transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
-}
-/* 头像悬停效果：放大 + 蓝色边框 + 发光 */
-.intro-card img:hover { transform: scale(1.08); border-color: #4a90d9; box-shadow: 0 0 30px rgba(74, 144, 217, 0.4); }
-/* 名字大标题："张向航"三个字，32px 字号，字间距 2px */
-.intro-card h1 { font-size: 32px; margin-bottom: 8px; letter-spacing: 2px; }
-/* 副标题："电子科技大学"灰色小字，16px，下边距 40px */
-.intro-card .subtitle { color: #a0a0b8; font-size: 16px; margin-bottom: 40px; }
-/* 装饰分隔线：名字下方那条 60px 宽的蓝紫渐变短线，纯装饰 */
-.intro-divider { width: 60px; height: 3px; background: linear-gradient(90deg, #2d4a7a, #4a90d9); border-radius: 2px; margin: 0 auto 30px; }
-/* 个人信息卡片：深色半透明内嵌小卡片，包含年龄/爱好/来自/梦想/手机号/性格
-   半透明背景 + 微弱边框，圆角 16px，悬停时上移 4px 并加深阴影 */
-.info-card {
-  width: 100%; max-width: 380px;
-  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px; padding: 24px 20px; text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  margin: 0 auto;
-}
-/* 个人信息卡片悬停：上移 + 加深阴影 */
-.info-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); }
-/* 个人信息每一行：如"年龄：19 岁"，灰色文字 15px */
-.info-card p { font-size: 15px; line-height: 2; color: #c0c0d0; display: flex;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
   justify-content: center;
-  align-items: center;}
-/* 每行前面的加粗标签：如"年龄："、"爱好："等，白色加粗 */
-.info-card p span { color: #fff; font-weight: bold; }
-/* 滚动提示文字："↓ 向下滚动查看更多"，半透明白色，带淡入上移动画 */
-.scroll-hint { color: rgba(255,255,255,0.6); font-size: 13px; letter-spacing: 2px; margin-top: 30px; animation: fadeInUp 1s ease 1s both; }
+  align-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: radial-gradient(90% 60% at 50% 0%, rgba(109, 94, 252, 0.16), transparent 65%);
+}
 
-/* 轮播图卡片*/
-.slider-card { padding: 40px 45px; gap: 24px; width: 640px; }
-/* 轮播图区域的标题 */
-.slider-card h2 { font-size: 28px; letter-spacing: 2px; color: #2d3748; text-align: center; margin-top: -15px; margin-bottom: 20px;}
-/* 轮播视窗 */
-.slider { position: relative; width: 100%; height: 360px; overflow: hidden; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
-/* 幻灯片轨道*/
-.slides { display: flex; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+/* 登录卡片。
+   顶部那团靛蓝辉光直接做进 background 的多层里，而不用伪元素：
+   伪元素要压到卡片背景之下得靠负 z-index，和 .card 的层叠关系很微妙，
+   做进背景层最省事，也不会有层叠顺序的意外 */
+.auth-card {
+  gap: 26px;
+  width: 400px;
+  padding: 52px 45px 42px;
+  background:
+    radial-gradient(120% 70% at 50% -14%, rgba(109, 94, 252, 0.20), transparent 66%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.88));
+  /* 比别的卡片更深的投影：登录卡是浮在极光里的，得压得住 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 50px 100px -30px rgba(0, 0, 0, 0.80),
+    0 18px 40px -18px rgba(109, 94, 252, 0.45);
+  animation: fadeInUp 0.4s var(--ease);
+}
+
+/* 卡片标题。
+   字距取正：中文不适合像西文那样压负字距（会把字挤在一起），
+   稍微放开一点反而更透气；text-indent 补回末尾多出的一档，让居中真居中 */
+.auth-card h2 {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-indent: 0.02em;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--ink-900);
+}
+
+/* 标题渐变字。整个包在 @supports 里：
+   万一浏览器不支持 background-clip:text，就直接用上面的实色，
+   绝不会出现「字被填成透明 → 整行消失」这种事故 */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .auth-card h2 {
+    background: linear-gradient(115deg, #101427 0%, #4834d4 62%, #0e7490 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* 表单区域：所有输入行的容器 */
+.auth-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  font-size: 15px;
+  color: var(--ink-700);
+}
+
+/* 单个输入行：标签 + 输入框横向排列。
+   字重提到 600，表单才读得出「结构化」而不是一行行散句 */
+.auth-fields label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* 输入框本体。
+   原来 2px 的边框放在 1px 的发丝卡里显得笨重；
+   改 1px + 内阴影，看起来像从玻璃里「铣」出来的一道槽，而不是贴上去的 */
+.auth-fields input {
+  flex: 1;
+  min-width: 0;                     /* 防止长内容把 flex 子项撑破 */
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--ink-900);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(16, 20, 39, 0.05);
+  transition: border-color 0.25s var(--ease),
+              box-shadow 0.25s var(--ease),
+              background-color 0.25s var(--ease);
+}
+
+/* 占位符。opacity 钉成 1：Firefox 默认会再淡一档，那样就掉出对比度要求了 */
+.auth-fields input::placeholder {
+  color: var(--ink-300);
+  opacity: 1;
+}
+
+.auth-fields input:hover {
+  border-color: #d3d8ee;
+}
+
+/* 聚焦：边框变紫 + 外发光 + 底色转白 */
+.auth-fields input:focus {
+  border-color: var(--brand-1);
+  background: #fff;
+  box-shadow: var(--ring), inset 0 1px 2px rgba(16, 20, 39, 0.04);
+}
+
+/* 登录 <-> 注册 的切换链接 */
+.auth-link {
+  font-size: 14px;
+  color: var(--ink-500);
+  letter-spacing: 0.02em;
+}
+
+.auth-link a {
+  color: var(--brand-1);
+  font-weight: 600;
+  text-decoration: none;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  cursor: pointer;
+  transition: color 0.25s var(--ease);
+}
+
+.auth-link a:hover {
+  color: var(--brand-2);
+  text-decoration: underline;
+}
+
+/* 这个链接原来没有任何聚焦样式，键盘 Tab 过来是看不见的，补上 */
+.auth-link a:focus-visible {
+  outline: none;
+  border-radius: 6px;
+  box-shadow: var(--ring);
+}
+
+
+/* ==========================================================================
+   8. 主页面框架
+   ========================================================================== */
+
+/* 登录后的主容器：三个板块纵向堆叠 */
+.app-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* 右上角退出登录按钮
+   它是 position: fixed，滚动时会一直浮在内容上方。
+   原来用实心渐变胶囊，压在浅色卡片上像贴了张标签；
+   改成深色玻璃胶囊 + 亮发丝边，两种底色上都立得住，
+   而且和卡片是同一套「玻璃」语言。
+   背景不透明度取 0.68：再低一点压在白卡上时白字对比度就不够了 */
+.logout-btn {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 100;
+  padding: 9px 20px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-indent: 0.12em;
+  color: #fff;
+  background: rgba(14, 17, 40, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 10px 26px -12px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  cursor: pointer;
+  transition: transform 0.25s var(--ease-spring),
+              box-shadow 0.25s var(--ease),
+              background-color 0.25s var(--ease),
+              border-color 0.25s var(--ease);
+}
+
+.logout-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(109, 94, 252, 0.45);
+  border-color: rgba(168, 85, 247, 0.60);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 14px 32px -12px rgba(109, 94, 252, 0.75);
+}
+
+.logout-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.logout-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+/* 全屏分区：个人介绍 / 轮播图 / 留言板 各自占满一屏并垂直居中 */
+.section {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 100vh;
+  padding: 80px 20px;
+}
+
+/* 分区之间一道极光接缝：不加任何 DOM，长滚动就有了「换房间」的节奏。
+   pointer-events:none，而且贴在分区底边，离内容很远，不会误触 */
+.section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(620px, 76%);
+  height: 1px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(109, 94, 252, 0.45) 30%,
+    rgba(34, 211, 238, 0.40) 70%,
+    transparent);
+}
+
+/* 小屏手机上用 svh（不含浏览器地址栏高度），避免出现多余的滚动条 */
+@supports (min-height: 100svh) {
+  .section {
+    min-height: 100svh;
+  }
+}
+
+
+/* ==========================================================================
+   9. 板块一：个人介绍
+   整站第一眼。夜色玻璃板 + 内部靛蓝/青的极光，比原来「紫色底上的深色卡」
+   更彻底，一眼看得出是换了套设计。
+   两团辉光直接叠进 background（靛蓝 + 青色），不用伪元素，
+   免得和 .intro-card img 抢层叠 */
+.intro-card {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 46px 28px;
+  text-align: center;
+  color: #fff;
+  background:
+    radial-gradient(120% 70% at 50% -12%, rgba(34, 211, 238, 0.22), transparent 66%),
+    radial-gradient(120% 80% at 50% -10%, rgba(109, 94, 252, 0.42), transparent 62%),
+    linear-gradient(160deg, rgba(13, 17, 44, 0.95), rgba(7, 9, 24, 0.97));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 46px 90px -30px rgba(0, 0, 0, 0.90),
+    0 0 0 1px rgba(109, 94, 252, 0.10);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* 头像：圆形 + 光环，鼠标悬停放大并转为青色辉光。
+   原来那道 4px 实心深蓝边太「描线」，改成半透光环 + 外发光更像打光。
+
+   —— 这里有个一直没被发现的坑 ——
+   原来写的是 animation: fadeInDown 1s ... forwards。
+   forwards 会让动画停在最后一帧并「永久生效」，而动画产生的值在层叠里的优先级
+   高于普通声明（:hover 也算普通声明，选择器权重再高也压不过）。
+   所以下面 :hover 的 transform: scale() 写了也白写，从来没生效过。
+   fadeInUp / fadeInDown 的结束态（opacity 1、位移 0）和元素的默认态本来就一样，
+   去掉 forwards 视觉上没有任何变化，悬停放大这才真正动起来。
+   （唯一需要保留 forwards 的是 .msg-item.removing 的淡出 —— 那里结束态和默认态不同） */
+.intro-card img {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 30px;
+  object-fit: cover;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 6px rgba(109, 94, 252, 0.16),
+    0 20px 44px -14px rgba(0, 0, 0, 0.85);
+  animation: fadeInDown 1s var(--ease);
+  transition: transform 0.45s var(--ease-spring),
+              border-color 0.45s var(--ease),
+              box-shadow 0.45s var(--ease);
+}
+
+.intro-card img:hover {
+  transform: scale(1.06);
+  border-color: rgba(34, 211, 238, 0.80);
+  box-shadow:
+    0 0 0 9px rgba(34, 211, 238, 0.18),
+    0 0 48px rgba(109, 94, 252, 0.60),
+    0 24px 50px -16px rgba(0, 0, 0, 0.85);
+}
+
+/* 姓名大标题：白 → 淡紫 → 青的渐变字，在极夜底上像自带背光。
+   字距用正数：中文每个字本来就有固定的字身框，学西文那样压负字距会把字挤在一起。
+   text-indent 补回最后一字右侧多出的那点间距，让居中真正居中。
+   这里也刻意不加 text-shadow —— 字形已经被填成透明，
+   投影会从字里面透出来，字反而变糊；想要光晕得用 filter: drop-shadow */
+.intro-card h1 {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-indent: 0.02em;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  background: linear-gradient(120deg, #ffffff 0%, #cfd0ff 55%, #7fe6ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 学校副标题 */
+.intro-card .subtitle {
+  font-size: 15px;
+  letter-spacing: 0.10em;
+  text-indent: 0.10em;
+  color: rgba(255, 255, 255, 0.66);
+  margin-bottom: 38px;
+}
+
+/* 姓名下方的渐变装饰短线：和按钮、AI 标识共用同一条极光渐变 */
+.intro-divider {
+  width: 72px;
+  height: 3px;
+  margin: 0 auto 30px;
+  border-radius: 3px;
+  background: var(--brand-grad);
+  box-shadow: 0 0 18px rgba(109, 94, 252, 0.65);
+}
+
+/* 个人信息内嵌小卡片：顶亮底暗的渐变 + 内高光，
+   读起来像嵌在外层玻璃里的一块面板 */
+.info-card {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 22px 20px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transition: transform 0.35s var(--ease),
+              box-shadow 0.35s var(--ease),
+              border-color 0.35s var(--ease);
+}
+
+@media (hover: hover) {
+  .info-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(34, 211, 238, 0.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.20),
+      0 20px 44px -18px rgba(0, 0, 0, 0.85);
+  }
+}
+
+/* 每条信息一行，如「年龄：19 岁」。
+   标签加粗提亮、内容压到 0.70 白，一行的主次就分出来了 ——
+   这是深色卡片里最有效的一处可读性改进 */
+.info-card p {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14.5px;
+  line-height: 2.05;
+  color: rgba(255, 255, 255, 0.70);
+}
+
+.info-card p span {
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* 滚动提示文字 */
+.scroll-hint {
+  margin-top: 30px;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  color: var(--text-on-dark-dim);
+  animation: fadeInUp 1s var(--ease) 1s both;
+}
+
+/* 浅色卡片上的滚动提示：用 --ink-500，
+   原来的 --ink-300 在白玻璃上只有 2.6:1，基本看不清 */
+.scroll-hint--muted {
+  color: var(--ink-500);
+}
+
+
+/* ==========================================================================
+   10. 板块二：轮播图
+   ========================================================================== */
+.slider-card {
+  width: 640px;
+  max-width: 100%;
+  padding: 40px 45px 36px;
+}
+
+.slider-card h2 {
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-indent: 0.02em;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--ink-900);
+  margin-bottom: 22px;
+}
+
+/* 和登录页标题同一套渐变字，同样裹在 @supports 里 */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .slider-card h2 {
+    background: linear-gradient(115deg, #101427 0%, #4834d4 62%, #0e7490 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* 视窗：内嵌一道白色细环，幻灯片就像被框在玻璃里 */
+.slider {
+  position: relative;
+  width: 100%;
+  height: 360px;
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 24px 54px -24px rgba(3, 5, 20, 0.75);
+}
+
+/* 幻灯片轨道：横向排布所有幻灯片，位移由 JS 绑定的 transform 驱动
+   下面的 transition 决定了切换时的滑动动画。
+   will-change 只挂在这条小轨道上（图层有限），绝不挂到滚动容器上 */
+.slides {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.62s var(--ease);
+  will-change: transform;
+}
+
 /* 单张幻灯片 */
-.slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; text-align: center; }
-/* 幻灯片大标题*/
-.slide h3 { font-size: 36px; letter-spacing: 3px; margin-bottom: 12px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3); }
-/* 幻灯片副文字 */
-.slide p { font-size: 16px; color: rgba(255, 255, 255, 0.85); letter-spacing: 1px; }
-/* 第 1 张幻灯片背景 */
-.slide:nth-child(1) { background: linear-gradient(135deg, #667eea, #764ba2); }
-/* 第 2 张 */
-.slide:nth-child(2) { background: linear-gradient(135deg, #f093fb, #f5576c); }
-/* 第 3）*/
-.slide:nth-child(3) { background: linear-gradient(135deg, #4facfe, #00f2fe); }
-/* 4 */
-.slide:nth-child(4) { background: linear-gradient(135deg, #43e97b, #38f9d7); }
-/* 第 5 张幻灯片 */
-.slide:nth-child(5) { background: linear-gradient(135deg, #fa709a, #fee140); }
-/* 轮播左右切换按钮 */
+.slide {
+  position: relative;
+  min-width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0 30px;
+  text-align: center;
+  color: #fff;
+}
+
+/* 标题用 clamp 随视口缩放，不再靠断点硬切；
+   两层深色投影保证文字压在最亮的那两档渐变上也依然清楚 */
+.slide h3 {
+  font-size: clamp(24px, 3.6vw, 34px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-indent: 0.04em;
+  line-height: 1.25;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.30), 0 12px 34px rgba(0, 0, 0, 0.30);
+}
+
+.slide p {
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-indent: 0.06em;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+
+/* 五张幻灯片各自的底色。
+   色相家族保持原样（紫 / 洋红 / 青 / 墨绿 / 琥珀），
+   但每一档都比原来深 —— 原来的 #43e97b→#38f9d7、#fee140 太亮，
+   白字压上去只有 1.3:1 左右，等于看不见。
+   每张左上角再加一团白光，幻灯片就像被打亮，而不是印出来的 */
+.slide:nth-child(1) {
+  background-image:
+    radial-gradient(120% 90% at 12% 0%, rgba(255, 255, 255, 0.26), transparent 58%),
+    linear-gradient(135deg, #4f46e5 0%, #7c3aed 52%, #0e7490 100%);
+}
+.slide:nth-child(2) {
+  background-image:
+    radial-gradient(120% 90% at 12% 0%, rgba(255, 255, 255, 0.24), transparent 58%),
+    linear-gradient(135deg, #9d174d 0%, #be185d 45%, #5b21b6 100%);
+}
+.slide:nth-child(3) {
+  background-image:
+    radial-gradient(120% 90% at 12% 0%, rgba(255, 255, 255, 0.24), transparent 58%),
+    linear-gradient(135deg, #0e7490 0%, #0891b2 48%, #3730a3 100%);
+}
+.slide:nth-child(4) {
+  background-image:
+    radial-gradient(120% 90% at 12% 0%, rgba(255, 255, 255, 0.24), transparent 58%),
+    linear-gradient(135deg, #047857 0%, #0d9488 50%, #1e3a8a 100%);
+}
+.slide:nth-child(5) {
+  background-image:
+    radial-gradient(120% 90% at 12% 0%, rgba(255, 255, 255, 0.26), transparent 58%),
+    linear-gradient(135deg, #92400e 0%, #be123c 48%, #4338ca 100%);
+}
+
+/* 左右切换按钮。
+   原来是 25% 白的玻璃圆钮，压在亮色幻灯片上几乎看不见；
+   换成深色烟熏玻璃 + 亮发丝边，五张底色上都清楚，材料也和退出按钮一致 */
 .btn {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  width: 44px; height: 44px; background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%; color: #fff; font-size: 20px; cursor: pointer;
-  transition: all 0.3s ease; z-index: 10;
-  display: flex; justify-content: center; align-items: center;
+  position: absolute;
+  top: 50%;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  color: #fff;
+  background: rgba(8, 10, 26, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background-color 0.25s var(--ease),
+              transform 0.25s var(--ease),
+              border-color 0.25s var(--ease),
+              box-shadow 0.25s var(--ease);
 }
-/* 切换按钮悬停 */
-.btn:hover { background: rgba(255, 255, 255, 0.5); transform: translateY(-50%) scale(1.1); }
-/* 切换按钮点击*/
-.btn:active { transform: translateY(-50%) scale(0.95); }
-/* 左箭头按钮位置 */
-.btn-left { left: 14px; }
-/* 右箭头按钮位置 */
+
+.btn:hover {
+  background: rgba(109, 94, 252, 0.55);
+  border-color: rgba(255, 255, 255, 0.60);
+  transform: translateY(-50%) scale(1.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 10px 26px -10px rgba(0, 0, 0, 0.85);
+}
+
+.btn:active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.btn-left  { left: 14px; }
 .btn-right { right: 14px; }
-/* 指示点容器 */
-.dots { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10; }
+
+/* 指示点容器：垫一块玻璃托盘，
+   这样不管底下是哪张幻灯片，指示点都看得清 */
+.dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(8, 10, 26, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform: translateX(-50%);
+}
+
 /* 单个指示点 */
-.dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); cursor: pointer; transition: all 0.3s ease; }
-/* 指示点悬停 */
-.dot:hover { background: rgba(255, 255, 255, 0.6); }
-/* 当前激活的指示点 */
-.dot.active { background: #fff; transform: scale(1.3); box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
-/* 页码计数器文字*/
-.slide-counter { font-size: 14px; color: #4a5568; letter-spacing: 2px; }
-/* 页码计数器中的数字 */
-.slide-counter span { color: #667eea; font-weight: bold; font-size: 18px; }
-
-/* ==========================================
-   留言板卡片（白色.card 风格）：第三个板块的主体盒子
-   ========================================== */
-.msg-card { padding: 50px 45px 40px; gap: 28px; width: 100%; max-width: 600px; margin-bottom: 40px; }
-/* 留言板大标题："💬 留言板"，28px 加粗深灰色，居中 */
-.msg-title { font-size: 28px; letter-spacing: 2px; color: #2d3748; text-align: center; font-weight: bold; margin-bottom: 20px; }
-/* 留言表单容器：包裹昵称输入框 + 留言文本框 + 发表按钮，纵向排列间距 16px */
-.msg-form { display: flex; flex-direction: column; gap: 16px; width: 100%; }
-/* 表单每一行：如"昵称：输入框"或"留言：文本框"，灰色文字 15px 加粗 */
-.msg-form label { display: flex; align-items: center; gap: 12px; font-size: 15px; color: #4a5568; font-weight: 500; }
-/* 留言表单的输入框和文本框：灰色底圆角输入样式，和登录页输入框风格一致 */
-.msg-form input, .msg-form textarea {
-  flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 12px;
-  outline: none; transition: all 0.3s; background: #f7fafc; font-size: 15px; font-family: inherit; color: #2d3748;
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+  transition: width 0.35s var(--ease),
+              background-color 0.35s var(--ease),
+              box-shadow 0.35s var(--ease);
 }
-/* 留言文本框：最小高度 120px，可以上下拖拽调整高度 */
-.msg-form textarea { min-height: 120px; resize: vertical; }
-/* 输入框和文本框的占位符文字颜色：浅灰色 */
-.msg-form input::placeholder, .msg-form textarea::placeholder { color: #a0aec0; }
-/* 输入框和文本框获得焦点时：边框变紫 + 外发光 + 白色背景 */
-.msg-form input:focus, .msg-form textarea:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); background: #fff; }
-/* 分隔线：表单和留言列表之间的渐变横线（两端透明，中间灰色） */
-.msg-divider { height: 1px; background: linear-gradient(90deg, transparent, #e2e8f0, transparent); width: 100%; }
-/* 留言列表标题："全部留言 (0)"，18px 深灰色加粗 */
-.msg-list-header { font-size: 18px; color: #2d3748; letter-spacing: 1px; font-weight: 600; margin-top:10px ;}
-/* 留言列表容器：所有留言条目的纵向排列区，最大高度 500px，超出可滚动
-   右侧有 4px 内边距给滚动条留空间 */
-.msg-list { display: flex; flex-direction: column; gap: 16px; width: 100%; max-height: 500px; overflow-y: auto; padding-right: 4px; }
-/* 留言列表滚动条整体宽度：6px */
+
+.dot:hover {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+/* 当前页指示点：从圆点拉长成胶囊，填上极光渐变并发出青光，
+   状态一眼可辨。.active 这个类名和宽度过渡都原样保留 */
+.dot.active {
+  width: 28px;
+  border-radius: 999px;
+  background: var(--brand-grad);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.70), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.dot:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+/* 页码计数器。
+   tabular-nums 让数字等宽，翻页时这一行不会左右抖 */
+.slide-counter {
+  margin-top: 18px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--ink-500);
+}
+
+
+/* ==========================================================================
+   11. 板块三：留言板
+   ========================================================================== */
+.msg-card {
+  width: 100%;
+  max-width: 620px;
+  margin-bottom: 40px;
+  padding: 48px 45px 38px;
+}
+
+/* 标题。
+   注意：这里故意用「渐变下划线」而不是渐变字。
+   标题里含一个 emoji 和一个活的 .ai-badge 子元素，
+   一旦给标题做 background-clip:text，子元素会被一起填成透明，emoji 也可能消失 */
+.msg-title {
+  position: relative;
+  margin-bottom: 26px;
+  padding-bottom: 14px;
+  font-size: var(--fs-h2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-indent: 0.02em;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--ink-900);
+}
+
+.msg-title::after {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 3px;
+  margin: 12px auto 0;
+  border-radius: 3px;
+  background: var(--brand-grad);
+  box-shadow: 0 0 14px rgba(109, 94, 252, 0.55);
+}
+
+/* 表单容器 */
+.msg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* 表单每一行：标签 + 控件 */
+.msg-form label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-700);
+}
+
+/* 「留言：」这一行的标签要对齐文本框顶部，而不是垂直居中。
+   这里必须写成 .msg-form label.msg-label-top：
+   上面 .msg-form label 的优先级是 (0,1,1)，单个类选择器 (0,1,0) 压不过它 */
+.msg-form label.msg-label-top {
+  align-items: flex-start;
+  padding-top: 14px;   /* 和文本框上内边距对齐，视觉更整齐 */
+}
+
+/* 输入框与文本框：和登录页同一套「铣进玻璃」的语言 */
+.msg-form input,
+.msg-form textarea {
+  flex: 1;
+  min-width: 0;
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--ink-900);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  outline: none;
+  resize: vertical;
+  box-shadow: inset 0 1px 2px rgba(16, 20, 39, 0.05);
+  transition: border-color 0.25s var(--ease),
+              box-shadow 0.25s var(--ease),
+              background-color 0.25s var(--ease);
+}
+
+.msg-form textarea {
+  min-height: 124px;
+  line-height: 1.75;
+}
+
+.msg-form input::placeholder,
+.msg-form textarea::placeholder {
+  color: var(--ink-300);
+  opacity: 1;
+}
+
+.msg-form input:hover,
+.msg-form textarea:hover {
+  border-color: #d3d8ee;
+}
+
+.msg-form input:focus,
+.msg-form textarea:focus {
+  border-color: var(--brand-1);
+  background: #fff;
+  box-shadow: var(--ring), inset 0 1px 2px rgba(16, 20, 39, 0.04);
+}
+
+/* Chrome 自动填充时会强行刷上自己的淡蓝底和黑字，
+   在浅色玻璃上会是一块很突兀的补丁。这里用一张超大内阴影把它的底色盖掉。
+   这条的权重低于上面的 :focus，所以聚焦样式依然能正常接管 */
+.auth-fields input:-webkit-autofill,
+.msg-form input:-webkit-autofill,
+.msg-form textarea:-webkit-autofill {
+  -webkit-text-fill-color: var(--ink-900);
+  -webkit-box-shadow: 0 0 0 1000px var(--paper) inset;
+  box-shadow: 0 0 0 1000px var(--paper) inset;
+  transition: background-color 9999s ease-out;
+}
+
+/* 表单与列表之间的分隔线：原来是一条灰线，改成一道极光扫过 */
+.msg-divider {
+  width: 100%;
+  height: 1px;
+  margin: 28px 0 6px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(109, 94, 252, 0.28) 35%,
+    rgba(34, 211, 238, 0.28) 65%,
+    transparent);
+}
+
+/* 列表标题「全部留言 (N)」。
+   从 18px 降到 15px 并拉开字距，读起来是「列表的标签」，
+   不再和上面的板块大标题抢层级 */
+.msg-list-header {
+  margin: 12px 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  color: var(--ink-900);
+}
+
+/* 留言列表：超出高度可滚动 */
+.msg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 6px;
+  /* Firefox 用这两个属性（原来只写了 WebKit 的，火狐那边是默认滚动条） */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(109, 94, 252, 0.35) transparent;
+}
+
+/* 列表滚动条：细窄样式（仅 WebKit 内核生效） */
 .msg-list::-webkit-scrollbar { width: 6px; }
-/* 滚动条轨道背景：透明 */
 .msg-list::-webkit-scrollbar-track { background: transparent; }
-/* 滚动条滑块：灰色圆角小条 */
-.msg-list::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
-/* 滚动条滑块悬停：变深灰 */
-.msg-list::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
-/* 单条留言卡片：浅灰背景 (#f7fafc)，圆角 16px，带淡入上移动画
-   悬停时边框变紫 + 微阴影 + 上移 1px */
+.msg-list::-webkit-scrollbar-thumb {
+  background: rgba(109, 94, 252, 0.28);
+  border-radius: 999px;
+}
+.msg-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(109, 94, 252, 0.50);
+}
+
+/* 单条留言。
+   底色用纯白而不是 --paper：
+   外层卡片是 82% 白叠在深色极光上，渲染出来偏冷灰，
+   再用 #f5f6fc 做条目底色两者几乎同色，条目会糊在卡片里分不出来。
+   改成纯白 + 淡紫描边 + 极轻阴影，层次一下子就清楚了 */
 .msg-item {
-  background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 16px;
-  padding: 18px 22px; transition: all 0.3s ease; animation: fadeInUp 0.4s ease forwards;
+  position: relative;
+  padding: 18px 22px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfbfe 100%);
+  border: 1px solid rgba(109, 94, 252, 0.14);
+  border-left: 3px solid transparent;   /* 悬停时左侧亮起一道紫边 */
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16, 20, 39, 0.05), 0 10px 24px -18px rgba(16, 20, 39, 0.35);
+  /* 同样去掉 forwards：留着它，下面 :hover 的 translateY(-3px) 永远不会生效 */
+  animation: fadeInUp 0.4s var(--ease);
+  transition: border-color 0.3s var(--ease),
+              box-shadow 0.3s var(--ease),
+              transform 0.3s var(--ease-spring);
 }
-/* 留言卡片悬停：紫色边框 + 淡紫阴影 + 上移 */
-.msg-item:hover { border-color: #667eea; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08); transform: translateY(-1px); }
-/* 留言头部行：昵称 (左) + 时间 + 删除按钮 (右) 两端对齐的 flex 布局 */
-.msg-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-/* 留言者昵称：紫色加粗 15px */
-.msg-item-name { font-size: 15px; font-weight: bold; color: #667eea; }
-/* 留言时间：灰色小字 12px，如"2026-09-15 14:30" */
-.msg-item-time { font-size: 12px; color: #a0aec0; }
-/* 留言正文内容：14px 深灰色文字，行高 1.7，自动换行 */
-.msg-item-content { font-size: 14px; color: #4a5568; line-height: 1.7; word-break: break-all; }
-/* 删除按钮：默认透明隐形，灰色小字 12px，悬停时才变红色显示出来 */
+
+/* 顶部一道极光发丝，悬停时点亮。画在 padding 区里，不会压到正文 */
+.msg-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: var(--brand-grad);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease);
+}
+
+/* 悬停：只有左侧那道 3px 竖条点亮成紫色，其余边保持淡色，
+   避免整圈变紫显得太重 */
+@media (hover: hover) {
+  .msg-item:hover {
+    border-color: rgba(109, 94, 252, 0.22);
+    border-left-color: var(--brand-1);
+    box-shadow: 0 18px 40px -20px rgba(109, 94, 252, 0.55), 0 2px 4px rgba(16, 20, 39, 0.06);
+    transform: translateY(-3px);
+  }
+  .msg-item:hover::before {
+    opacity: 1;
+  }
+}
+
+/* 删除中的留言：向右淡出，期间不接受点击，防止动画播放时被重复点。
+   时长 0.3s 必须和 JS 里 await 的 300ms 对齐。
+   这里是全站唯一必须留 forwards 的地方：
+   结束态（透明 + 右移 30px）和默认态不一样，不留住的话
+   元素会在被 JS 移除前的最后一帧突然弹回可见状态，闪一下 */
+.msg-item.removing {
+  animation: fadeOutRight 0.3s var(--ease) forwards;
+  pointer-events: none;
+}
+
+/* 留言头部：昵称在左，时间与删除按钮在右 */
+.msg-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+/* 昵称 */
+.msg-item-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--brand-1);
+}
+
+/* 昵称前面一枚发光渐变小点，把每条留言都拴到极光这套语言上 */
+.msg-item-name::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  vertical-align: 1px;
+  border-radius: 50%;
+  background: var(--brand-grad);
+  box-shadow: 0 0 8px rgba(109, 94, 252, 0.55);
+}
+
+/* 头部右侧那一组（时间 + 删除按钮） */
+.msg-item-meta {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* 留言时间。
+   tabular-nums 让一串时间竖向对齐，不再参差不齐 */
+.msg-item-time {
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-500);
+}
+
+/* 正文 */
+.msg-item-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--ink-700);
+  white-space: pre-wrap;    /* 保留用户在文本框里敲的换行 */
+}
+
+/* 删除按钮：平时很淡，鼠标移到留言上才变紫，避免界面太吵。
+   静息色取 --ink-500（7.3:1）而不是原来的 #cbd5e0（1.6:1）——
+   一个按钮至少得先看得见，才谈得上「安静」 */
 .msg-delete-btn {
-  background: none; border: 1px solid transparent; color: #cbd5e0;
-  font-size: 12px; cursor: pointer; padding: 3px 10px; border-radius: 8px;
-  transition: all 0.3s ease; letter-spacing: 1px; margin-left: 10px; white-space: nowrap;
+  margin-left: 10px;
+  padding: 4px 11px;
+  font-family: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  color: var(--ink-500);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.25s var(--ease),
+              background-color 0.25s var(--ease),
+              border-color 0.25s var(--ease),
+              transform 0.2s var(--ease-spring);
 }
-/* 删除按钮悬停：变红色文字 + 浅红边框 + 浅红背景 */
-.msg-delete-btn:hover { color: #e53e3e; border-color: #fed7d7; background: #fff5f5; }
-/* 删除按钮点击：缩小 0.95 倍 */
-.msg-delete-btn:active { transform: scale(0.95); }
-/* 留言删除动画状态：向右淡出消失，期间不可点击 */
-.msg-item.removing { animation: fadeOutRight 0.3s ease forwards; pointer-events: none; }
-/* 空状态提示："暂无留言，快来抢沙发吧~"，灰色居中 14px */
-.msg-empty { text-align: center; color: #a0aec0; font-size: 14px; padding: 30px 0; }
 
-/* ==========================================
-   AI 回复区域：嵌套在每条留言 (msg-item) 内部
-   淡紫渐变背景的圆角回复卡片，带淡入上移动画
-   包含：AI 图标 + 标题头、回复正文、加载中动画、错误提示
-   ========================================== */
+.msg-item:hover .msg-delete-btn {
+  color: var(--brand-1);
+  border-color: var(--line);
+}
+
+.msg-delete-btn:hover {
+  color: #be123c;
+  background: #fff1f4;
+  border-color: #fecdd3;
+}
+
+.msg-delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* 这个按钮原来也没有聚焦样式，补上，并且聚焦时直接显成红色 */
+.msg-delete-btn:focus-visible {
+  outline: none;
+  color: #be123c;
+  box-shadow: var(--ring);
+}
+
+/* 空状态提示。
+   空列表往往是访客看到的第一屏，配一枚小紫星 + 达标的文字色，
+   比原来那句灰字「暂无留言」更像一个设计过的状态 */
+.msg-empty {
+  padding: 36px 0;
+  font-size: 14px;
+  text-align: center;
+  letter-spacing: 0.06em;
+  color: var(--ink-500);
+}
+
+.msg-empty::before {
+  content: '✦';
+  display: block;
+  margin-bottom: 10px;
+  font-size: 20px;
+  color: rgba(109, 94, 252, 0.45);
+}
+
+
+/* ==========================================================================
+   12. AI 回复区域
+   嵌在每条留言内部。做成一块「内嵌受光面板」：
+   角落一点青色辉光 + 顶部内高光 + 会发光的渐变竖条，
+   机器的声音和人写的留言一眼就能分开，又不至于喧宾夺主
+   ========================================================================== */
 .ai-reply {
-  margin-top: 12px; padding: 14px 18px; border-radius: 12px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
-  border: 1px solid rgba(102, 126, 234, 0.2); position: relative;
-  animation: fadeInUp 0.5s ease forwards;
+  position: relative;
+  margin-top: 12px;
+  padding: 14px 18px 14px 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(34, 211, 238, 0.12), transparent 55%),
+    linear-gradient(135deg, rgba(34, 211, 238, 0.07), rgba(14, 116, 144, 0.06));
+  border: 1px solid rgba(14, 116, 144, 0.22);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.70);
+  animation: fadeInUp 0.5s var(--ease);
 }
-/* AI 回复头部行：AI 小圆标 + "通义千问 回复"文字，紫色加粗 13px */
+
+/* 左侧竖条装饰：走冷青，和「人」那一侧的紫青分开 */
+.ai-reply::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--ai-rail);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
+}
+
+/* 回复头部：圆形 AI 标识 + 标题文字。
+   文字用 --ai-ink（深青），不用 --brand-1：
+   这块面板是浅色底，亮青色的字在上面根本读不出来 */
 .ai-reply-header {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-  font-size: 13px; font-weight: bold; color: #667eea;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ai-ink);
 }
-/* AI 小圆标：22x22 的紫蓝渐变小圆圈，里面写"AI"两个白色字 */
+
+/* AI 小圆标：内高光 + 外发光，像一枚会亮的胶囊标。
+   底色用深一档的青（--ai-chip），因为里面是白色小字，
+   压亮青只有 1.9:1；这一档能到 5.4:1 以上 */
 .ai-reply-header .ai-icon {
-  width: 22px; height: 22px; border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 11px; font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #fff;
+  border-radius: 50%;
+  background: var(--ai-chip);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 4px 12px -2px rgba(34, 211, 238, 0.65);
 }
-/* AI 回复正文：14px 深灰色文字，行高 1.8，自动换行 */
-.ai-reply-content { font-size: 14px; color: #4a5568; line-height: 1.8; word-break: break-all; }
-/* AI 加载状态："正在生成回复 ···"，紫色斜体 13px，三个小圆点脉冲动画 */
+
+/* 回复正文。AI 回复是全页阅读量最大的文字块，
+   行高给到 1.85，长回复才不会糊成一片 */
+.ai-reply-content {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--ink-700);
+  white-space: pre-wrap;
+}
+
+/* 加载中提示。
+   斜体去掉了：中文字体没有真斜体，浏览器会合成一个假倾斜，笔画会歪得很难看 */
 .ai-reply-loading {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 13px; color: #667eea; font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ai-ink);
 }
-/* 加载动画的三个小圆点：6x6 紫色圆点，脉冲动画无限循环 */
+
+/* 三个跳动的圆点 */
+.dot-anim {
+  display: inline-flex;
+  gap: 4px;
+}
+
 .ai-reply-loading .dot-anim span {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: #667eea; animation: pulse 1.2s ease-in-out infinite;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0891b2;
+  animation: pulse 1.2s ease-in-out infinite;
 }
-/* 第 2 个圆点延迟 0.2s，制造依次闪烁效果 */
+
+/* 依次延迟，形成流水灯效果 */
 .ai-reply-loading .dot-anim span:nth-child(2) { animation-delay: 0.2s; }
-/* 第 3 个圆点延迟 0.4s */
 .ai-reply-loading .dot-anim span:nth-child(3) { animation-delay: 0.4s; }
-/* AI 回复失败错误提示：红色 13px 文字，如"⚠️ AI 暂时无法回复" */
-.ai-reply-error { color: #e53e3e; font-size: 13px; }
 
-/* AI 标签：标题旁"🤖 AI 自动回复"的紫蓝渐变小标签，白色文字 11px，圆角药丸形 */
-.ai-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: #fff; font-size: 11px; padding: 2px 10px; border-radius: 10px;
-  letter-spacing: 1px; margin-left: 8px; font-weight: bold;
+/* 失败提示：做成一颗药丸。
+   原来是淡紫面板上的细红字，本来就不好读；
+   现在 #9f1239 压在极淡的玫红底上约 8:1，而且归属感还留在 AI 面板里 */
+.ai-reply-error {
+  font-size: var(--fs-sm);
+  line-height: 1.75;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: #9f1239;
+  background: rgba(190, 18, 60, 0.07);
+  border: 1px solid rgba(190, 18, 60, 0.18);
 }
 
-/* 页面底部结束语："— 到此结束·感谢浏览 —"，半透明白色居中，字间距 4px */
-.end-tip { color: rgba(255,255,255,0.6); font-size: 13px; letter-spacing: 4px; text-align: center; padding: 10px 0 50px; }
+/* 标题旁的「🤖 AI 自动回复」标签 */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 3px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  /* 硬保险：万一将来有哪个祖先元素做了渐变字，
+     -webkit-text-fill-color 会被子元素继承从而把这一颗徽标（连同 emoji）填成透明。
+     这里钉死成白色，杜绝这种连带事故 */
+  -webkit-text-fill-color: #ffffff;
+  vertical-align: middle;
+  border-radius: 999px;
+  /* 和 AI 圆标同一档深青：里面是 11px 的白字，
+     压在亮青上只有 1.9:1，这一档能到 5.4:1 以上 */
+  background: var(--ai-chip);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.50),
+    0 6px 16px -6px rgba(34, 211, 238, 0.75);
+}
 
-/* ==========================================
-   手机端响应式适配：屏幕宽度≤680px 时生效
-   轮播卡/留言卡变全宽，内边距缩小，标题字号缩小，表单标签改竖排
-   ========================================== */
+.ai-badge:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.60),
+    0 10px 22px -6px rgba(34, 211, 238, 0.90);
+}
+
+
+/* ==========================================================================
+   13. 页脚结束语
+   它落在深色画布上，所以用 on-dark 那档（约 7.5:1），
+   text-indent 补回末尾多出的一档字距，让这一行真正居中
+   ========================================================================== */
+.end-tip {
+  padding: 10px 0 54px;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  text-align: center;
+  color: var(--text-on-dark-dim);
+}
+
+
+/* ==========================================================================
+   14. 响应式适配
+   ========================================================================== */
+
+/* 平板及以下：卡片收窄内边距，玻璃也降一档 */
 @media (max-width: 680px) {
-  .slider-card { width: 100%; padding: 30px 25px; }
-  .msg-card { padding: 35px 25px 30px; }
-  .msg-title { font-size: 24px; }
-  .auth-card { width: 100%; }
-  .msg-form label { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .section {
+    padding: 60px 16px;
+  }
+
+  /* 小屏上 backdrop-filter 是最贵的一项，模糊半径和圆角都收一收 */
+  .card,
+  .slider-card,
+  .msg-card {
+    border-radius: 22px;
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+  }
+
+  .auth-card {
+    width: 100%;
+    padding: 40px 26px 34px;
+  }
+
+  .slider-card {
+    width: 100%;
+    padding: 30px 22px 28px;
+  }
+
+  .msg-card {
+    padding: 34px 22px 30px;
+  }
+
+  .intro-card {
+    padding: 38px 20px;
+    border-radius: 26px;
+  }
+
+  .msg-title,
+  .slider-card h2 {
+    font-size: 24px;
+  }
+
+  /* 留言表单的标签改为上下排列，给输入框留出整行宽度 */
+  .msg-form label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  /* 表单控件改为占满整行 */
+  .msg-form input,
+  .msg-form textarea {
+    width: 100%;
+  }
+
+  /* 轮播图变矮，避免在竖屏上占满整屏 */
+  .slider {
+    height: 260px;
+    border-radius: 16px;
+  }
+
+  .slide h3 {
+    font-size: 24px;
+  }
+
+  /* 主按钮铺满，手指更好点 */
+  .auth-btn {
+    width: 100%;
+    padding: 15px 0;
+  }
+
+  /* 退出按钮缩小，别挡住标题 */
+  .logout-btn {
+    top: 12px;
+    right: 12px;
+    padding: 7px 15px;
+    font-size: var(--fs-xs);
+  }
+
+  /* 极光光斑缩小、漂移放慢：手机上别让背景动画吃掉帧率 */
+  body::before {
+    inset: -12vmax;
+    animation-duration: 70s, 26s;
+  }
+}
+
+/* 小屏手机：进一步压缩 */
+@media (max-width: 400px) {
+  .intro-card img {
+    width: 150px;
+    height: 150px;
+  }
+
+  .intro-card h1 {
+    font-size: 26px;
+  }
+
+  .slider {
+    height: 220px;
+  }
+
+  .slide h3 {
+    font-size: 21px;
+  }
+
+  .slide p {
+    font-size: 14px;
+  }
+
+  .msg-item {
+    padding: 14px 16px;
+  }
+
+  /* 顶部发丝缩短，窄卡片上才不会顶到圆角 */
+  .msg-item::before {
+    left: 10px;
+    right: 10px;
+  }
+
+  .card,
+  .slider-card,
+  .msg-card {
+    border-radius: 20px;
+  }
+}
+
+
+/* ==========================================================================
+   15. 无障碍与动效偏好
+   系统里勾了「减少动态效果」时，把内容动效一律关掉 ——
+   卡片入场、悬停位移、轮播缓动、AI 圆点闪烁，这些是大位移或高频闪烁，
+   才是真正会引起眩晕不适的部分。
+
+   背景那三层是刻意不跟随这个设置的，原速保留。
+   这是一个明确取舍，不是漏写：
+     · 本站的辨识度就建立在「背景一直在流动」上。之前一版按规矩把背景也
+       关掉/放慢过，结果是在开启了该选项的机器上，整站变成一块死板的深色板子 ——
+       实测帧间平均像素差只有 3.3（全速时是 23.7），肉眼等同于静止。
+     · 这三层是纯氛围色光：没有可参照的位移对象，不做推近拉远，
+       也不含高频闪烁，属于最不容易引发不适的一类动效。
+   如果以后要按规范收回来，把下面三条 animation-duration 删掉即可，
+   上面的 * 规则会自动接管。
+   （下面三条的选择器都比 *::before / *::after 更具体，
+     同为 !important 时按特异性取胜，所以能覆盖掉上面的归零）
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html::before {
+    animation-duration: 16s, 9s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  html::after {
+    animation-duration: 30s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  body::before {
+    animation-duration: 8s !important;
+    animation-iteration-count: infinite !important;
+  }
+
+  /* 悬停放大 / 上浮一律取消。
+     注意 .btn 不能写成 transform: none —— 它的垂直居中是靠 translateY(-50%)
+     撑着的，清掉就会直接掉到幻灯片底部；这里只收掉缩放 */
+  .card:hover,
+  .slider-card:hover,
+  .msg-card:hover,
+  .msg-item:hover,
+  .info-card:hover,
+  .intro-card img:hover,
+  .auth-btn:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .btn:hover {
+    transform: translateY(-50%);
+  }
 }

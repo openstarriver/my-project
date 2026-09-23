@@ -1,1 +1,4 @@
 .vercel
+
+# 依赖由 npm install 按 package-lock.json 还原，不进仓库
+node_modules/

@@ -1,63 +1,61 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import AuthView from './components/AuthView.vue'
 import IntroSection from './components/IntroSection.vue'
 import SliderSection from './components/SliderSection.vue'
 import MessageSection from './components/MessageSection.vue'
 
-// 控制显示状态
-const showApp = ref(false)
-const credentialsKey = 'zhangxianghang_credential'
+/* ============================================================
+   登录态管理
+   ============================================================ */
 
-// 从 localStorage 加载凭证
-const loadCredentials = () => {
-  try {
-    const stored = localStorage.getItem(credentialsKey)
-    if (stored) {
-      const creds = JSON.parse(stored)
-      if (Array.isArray(creds) && creds.length > 0) return true
-    }
-  } catch (e) {
-    console.error('读取凭证失败:', e)
-  }
-  // 默认存在初始账号
-  return true
-}
+// 登录态存储键。登录成功后置为 'true'，
+// 刷新页面时读它来判断要不要跳过登录页
+const LOGIN_KEY = 'zhangxianghang_loggedIn'
 
-// 检查是否已登录（简单检查，实际应该存储用户信息）
+// 读取登录态
 const checkLoggedIn = () => {
   try {
-    const loggedIn = localStorage.getItem('zhangxianghang_loggedIn')
-    return loggedIn === 'true'
+    return localStorage.getItem(LOGIN_KEY) === 'true'
   } catch (e) {
+    // 浏览器禁用本地存储时，稳妥起见当作未登录处理
     return false
   }
 }
 
-onMounted(() => {
-  const loggedIn = checkLoggedIn()
-  showApp.value = loggedIn
-})
+// 是否已登录：false 显示登录页，true 显示主站内容。
+// 必须在这里同步取一次，不能留到 onMounted 里再赋值 ——
+// 那样首帧渲染的永远是登录页，已登录的人每次刷新都会
+// 看到登录表单闪一下、再被主站顶掉。
+const showApp = ref(checkLoggedIn())
 
-// 进入应用
+// 登录成功回调：由 AuthView 校验通过后触发
 const enterApp = () => {
-  localStorage.setItem('zhangxianghang_loggedIn', 'true')
+  try {
+    localStorage.setItem(LOGIN_KEY, 'true')
+  } catch (e) {
+    console.error('记录登录态失败:', e)
+  }
   showApp.value = true
 }
 
-// 退出登录
+// 退出登录：清掉登录态并退回登录页
 const logout = () => {
-  localStorage.removeItem('zhangxianghang_loggedIn')
+  try {
+    localStorage.removeItem(LOGIN_KEY)
+  } catch (e) {
+    console.error('清除登录态失败:', e)
+  }
   showApp.value = false
 }
 </script>
 
 <template>
   <div class="app-container">
-    <!-- 登录/注册视图 -->
+    <!-- 未登录：只显示登录/注册页，主站内容完全不渲染 -->
     <AuthView v-if="!showApp" @login-success="enterApp" />
 
-    <!-- 主应用视图 -->
+    <!-- 已登录：显示主站三个板块 -->
     <div v-else class="app-view">
       <button class="logout-btn" @click="logout">退出登录</button>
 
@@ -79,6 +77,7 @@ const logout = () => {
 </template>
 
 <style scoped>
+/* 根容器：撑满整屏，让内部各板块能各自占满一屏 */
 .app-container {
   width: 100%;
   min-height: 100vh;
